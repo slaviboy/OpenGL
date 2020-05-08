@@ -20,7 +20,7 @@ package com.slaviboy.opengl.shapes.stroke
 import android.graphics.PointF
 import android.opengl.GLES20
 import com.slaviboy.opengl.main.OpenGLColor
-import com.slaviboy.opengl.main.OpenGLRenderer
+import com.slaviboy.opengl.main.OpenGLHelper
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -33,8 +33,6 @@ import java.nio.FloatBuffer
  * @param y2 second point y coordinate
  */
 class Line(x1: Float = 0f, y1: Float = 0f, x2: Float = 100f, y2: Float = 100f) {
-
-    private var needUpdate = false
 
     var x1: Float = x1
         set(value) {
@@ -60,48 +58,48 @@ class Line(x1: Float = 0f, y1: Float = 0f, x2: Float = 100f, y2: Float = 100f) {
             needUpdate = true
         }
 
-    private val vertexShaderCode: String =
-        """
-        uniform mat4 uMVPMatrix;
-        attribute vec4 vPosition;
-        void main() {
-          gl_Position = uMVPMatrix * vPosition;
-        }
-        """.trimIndent()
+    private var needUpdate: Boolean             // if the array rectCoords should be generated again once the draw method is called
 
-    private val fragmentShaderCode: String =
-        """
-        precision mediump float;
-        uniform vec4 vColor;
-        void main() {
-          gl_FragColor = vColor;
-        }
-        """.trimIndent()
+    private val program: Int                    // program for attaching the shaders
+    private var vertexBuffer: FloatBuffer       // buffer fo the vertex
+    private var positionHandle: Int             // handle for the position
+    private var colorHandle: Int                // handle for the color
+    private var MVPMatrixHandle: Int            // handle for the MVP matrix
+    private val drawOrder: ShortArray           // order to draw vertices
+    private val vertexStride: Int               // bytes per vertex
+    private var result: PointF                  // result point from graphic point to a OpenGL coordinate system
+    private var vertexCount: Int                // number of vertices
 
-    private var program: Int
-    private var positionHandle = 0
-    private var colorHandle = 0
-    private var MVPMatrixHandle = 0
-    private val vertexStride: Int = OpenGLRenderer.COORDS_PER_VERTEX * 4               // 4 bytes per vertex
-    private val vertexBuffer: FloatBuffer
-
-    var color: OpenGLColor = OpenGLColor()
-    var strokeWidth: Float = 1f
+    var vertexShaderCode: String                // shader with the vertex
+    var fragmentShaderCode: String              // shader with the fragment
+    var color: OpenGLColor                      // color for the shape
+    var strokeWidth: Float                      // stroke for the line
 
     var lineCoords: FloatArray = FloatArray(6)
         set(value) {
             field = value
             vertexBuffer.put(value)
             vertexBuffer.position(0)
-            vertexCount = value.size / OpenGLRenderer.COORDS_PER_VERTEX
+            vertexCount = value.size / OpenGLHelper.COORDS_PER_VERTEX
 
             // TODO -> set the corresponding x1,y1,x2,y2 line coordinates
         }
 
-    private var vertexCount: Int = lineCoords.size / OpenGLRenderer.COORDS_PER_VERTEX
-    private val result = PointF()                                      // result point from ordinary point to a OpenGL coordinate system
-
     init {
+
+        strokeWidth = 1f
+        vertexCount = lineCoords.size / OpenGLHelper.COORDS_PER_VERTEX
+        needUpdate = false
+        vertexShaderCode = OpenGLHelper.vertexShaderCode
+        fragmentShaderCode = OpenGLHelper.fragmentShaderCode
+        positionHandle = 0
+        colorHandle = 0
+        MVPMatrixHandle = 0
+        drawOrder = shortArrayOf(0, 1, 2, 0, 2, 3)
+        vertexStride = OpenGLHelper.COORDS_PER_VERTEX * 4
+
+        color = OpenGLColor()
+        result = PointF()
 
         val byteBuffer: ByteBuffer = ByteBuffer.allocateDirect(lineCoords.size * 4)
         byteBuffer.order(ByteOrder.nativeOrder())
@@ -113,8 +111,8 @@ class Line(x1: Float = 0f, y1: Float = 0f, x2: Float = 100f, y2: Float = 100f) {
         vertexBuffer.put(lineCoords)
         vertexBuffer.position(0)
 
-        val vertexShader: Int = OpenGLRenderer.loadShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode)
-        val fragmentShader: Int = OpenGLRenderer.loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentShaderCode)
+        val vertexShader: Int = OpenGLHelper.loadShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode)
+        val fragmentShader: Int = OpenGLHelper.loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentShaderCode)
 
         program = GLES20.glCreateProgram()              // create empty OpenGL ES Program
         GLES20.glAttachShader(program, vertexShader)    // add the vertex shader to program
@@ -122,6 +120,11 @@ class Line(x1: Float = 0f, y1: Float = 0f, x2: Float = 100f, y2: Float = 100f) {
         GLES20.glLinkProgram(program)                   // creates OpenGL ES program executables
     }
 
+    /**
+     * Encapsulates the OpenGL ES instructions for drawing this shape.
+     * @param mvpMatrix the Model View Project matrix in which to draw
+     * this shape.
+     */
     fun draw(mvpMatrix: FloatArray) {
 
         if (needUpdate) {
@@ -144,7 +147,7 @@ class Line(x1: Float = 0f, y1: Float = 0f, x2: Float = 100f, y2: Float = 100f) {
 
         // Prepare the triangle coordinate data
         GLES20.glVertexAttribPointer(
-            positionHandle, OpenGLRenderer.COORDS_PER_VERTEX,
+            positionHandle, OpenGLHelper.COORDS_PER_VERTEX,
             GLES20.GL_FLOAT, false,
             vertexStride, vertexBuffer
         )
@@ -157,11 +160,11 @@ class Line(x1: Float = 0f, y1: Float = 0f, x2: Float = 100f, y2: Float = 100f) {
 
         // get handle to shape's transformation matrix
         MVPMatrixHandle = GLES20.glGetUniformLocation(program, "uMVPMatrix")
-        OpenGLRenderer.checkGlError("glGetUniformLocation")
+        OpenGLHelper.checkGlError("glGetUniformLocation")
 
         // Apply the projection and view transformation
         GLES20.glUniformMatrix4fv(MVPMatrixHandle, 1, false, mvpMatrix, 0)
-        OpenGLRenderer.checkGlError("glUniformMatrix4fv")
+        OpenGLHelper.checkGlError("glUniformMatrix4fv")
 
         // Draw the triangle
         GLES20.glDrawArrays(GLES20.GL_LINES, 0, vertexCount)
@@ -170,14 +173,21 @@ class Line(x1: Float = 0f, y1: Float = 0f, x2: Float = 100f, y2: Float = 100f) {
         GLES20.glDisableVertexAttribArray(positionHandle)
     }
 
+    /**
+     * Generate the OpenGL coordinates in range [-1,1] for the line using the
+     * x1, y1, x2, y2 coordinates
+     */
     private fun generateCoordinates() {
-        getCoordinatesOpenGL(x1, y1, 0)      // top left
-        getCoordinatesOpenGL(x2, y2, 3)      // bottom left
+        getCoordinatesOpenGL(x1, y1, 0)      // first point
+        getCoordinatesOpenGL(x2, y2, 2)      // second point
         needUpdate = false
     }
 
+    /**
+     * Get the open gl coordinates in range [-1,1]
+     */
     private fun getCoordinatesOpenGL(x: Float, y: Float, i: Int) {
-        OpenGLRenderer.matrixGestureDetector.normalizeCoordinates(x, y, result)
+        OpenGLHelper.matrixGestureDetector.normalizeCoordinates(x, y, result)
         lineCoords[i] = result.x
         lineCoords[i + 1] = result.y
     }

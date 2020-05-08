@@ -3,27 +3,44 @@ package com.slaviboy.opengl
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
+import com.slaviboy.opengl.bigdata.BigDataSurfaceView
 import com.slaviboy.opengl.main.OpenGLSurfaceView
 
 class MainActivity : AppCompatActivity() {
 
     lateinit var openGLView: OpenGLSurfaceView
+    lateinit var bigDataView: BigDataSurfaceView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        openGLView = findViewById(R.id.open_gl_view)
+          openGLView = findViewById(R.id.open_gl_view)
+        // bigDataView = findViewById(R.id.big_data_view)
     }
 
     override fun onResume() {
         super.onResume()
-        openGLView.onResume()
+
+        if(::openGLView.isInitialized){
+            openGLView.onResume()
+        }
+
+        if(::bigDataView.isInitialized){
+            bigDataView.onResume()
+        }
     }
 
     override fun onPause() {
         super.onPause()
-        openGLView.onPause()
+
+        if(::openGLView.isInitialized){
+            openGLView.onPause()
+        }
+
+        if(::bigDataView.isInitialized){
+            bigDataView.onPause()
+        }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {

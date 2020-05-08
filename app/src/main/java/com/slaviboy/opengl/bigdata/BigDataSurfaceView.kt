@@ -13,25 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package  com.slaviboy.opengl.main
+package  com.slaviboy.opengl.bigdata
 
 import android.content.Context
 import android.graphics.PixelFormat
 import android.opengl.GLSurfaceView
 import android.util.AttributeSet
 import android.view.MotionEvent
+import com.slaviboy.opengl.main.OpenGLConfigChooser
+import com.slaviboy.opengl.main.OpenGLHelper
+import com.slaviboy.opengl.main.OpenGLMatrixGestureDetector
 
 /**
  * A view container where OpenGL ES graphics can be drawn on screen.
  * This view can also be used to capture touch events, such as a user
  * interacting with drawn objects.
  */
-class OpenGLSurfaceView : GLSurfaceView {
+class BigDataSurfaceView : GLSurfaceView {
 
     constructor(context: Context) : super(context)
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs)
 
-    private val renderer: OpenGLRenderer
+    private val renderer: BigDataRenderer
     private val matrixGestureDetector = OpenGLMatrixGestureDetector()
 
     override fun onTouchEvent(e: MotionEvent): Boolean {
@@ -60,7 +63,7 @@ class OpenGLSurfaceView : GLSurfaceView {
 
         // set the Renderer for drawing on the GLSurfaceView
         OpenGLHelper.matrixGestureDetector = matrixGestureDetector
-        renderer = OpenGLRenderer(context)
+        renderer = BigDataRenderer(context)
         setRenderer(renderer)
 
         // render the view only when there is a change in the drawing data

@@ -19,7 +19,7 @@ package com.slaviboy.opengl.shapes.fill
 import android.graphics.PointF
 import android.opengl.GLES20
 import com.slaviboy.opengl.main.OpenGLColor
-import com.slaviboy.opengl.main.OpenGLRenderer
+import com.slaviboy.opengl.main.OpenGLHelper
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -34,8 +34,6 @@ import java.nio.FloatBuffer
  * @param y3 third point y coordinate
  */
 class Triangle(x1: Float = 0f, y1: Float = 0f, x2: Float = 100f, y2: Float = 0f, x3: Float = 100f, y3: Float = 100f) {
-
-    private var needUpdate = false
 
     var x1: Float = x1
         set(value) {
@@ -73,50 +71,74 @@ class Triangle(x1: Float = 0f, y1: Float = 0f, x2: Float = 100f, y2: Float = 0f,
             needUpdate = true
         }
 
-    private val vertexShaderCode: String =
-        """
-            uniform mat4 uMVPMatrix;
-            attribute vec4 vPosition;
-            void main() {
-                gl_Position = uMVPMatrix * vPosition;
-            }
-        """.trimIndent()
+    private var needUpdate: Boolean             // if the array rectCoords should be generated again once the draw method is called
 
-    private val fragmentShaderCode: String =
-        """
-            precision mediump float;
-            uniform vec4 vColor;
-            void main() {
-                gl_FragColor = vColor;
-            }
-        """.trimIndent()
+    private val program: Int                    // program for attaching the shaders
+    private var vertexBuffer: FloatBuffer       // buffer fo the vertex
+    private var positionHandle: Int             // handle for the position
+    private var colorHandle: Int                // handle for the color
+    private var MVPMatrixHandle: Int            // handle for the MVP matrix
+    private val drawOrder: ShortArray           // order to draw vertices
+    private val vertexStride: Int               // bytes per vertex
+    private var result: PointF                  // result point from graphic point to a OpenGL coordinate system
+    private var vertexCount: Int                // number of vertices
 
-    private val vertexBuffer: FloatBuffer
-    private val program: Int
-    private var positionHandle = 0
-    private var colorHandle = 0
-    private var MVPMatrixHandle = 0
-    private val vertexStride: Int = OpenGLRenderer.COORDS_PER_VERTEX * 4
+    var vertexShaderCode: String                // shader with the vertex
+    var fragmentShaderCode: String              // shader with the fragment
+    var color: OpenGLColor                      // color for the shape
 
-    var triangleCoords: FloatArray = FloatArray(9)
+    var triangleCoords: FloatArray = FloatArray(3 * OpenGLHelper.COORDS_PER_VERTEX)
         set(value) {
             field = value
-            vertexBuffer.put(value)
+
+            val byteBuffer: ByteBuffer = ByteBuffer.allocateDirect(triangleCoords.size * 4)
+            byteBuffer.order(ByteOrder.nativeOrder())
+            vertexBuffer = byteBuffer.asFloatBuffer()
+            vertexBuffer.put(triangleCoords)
             vertexBuffer.position(0)
-            vertexCount = value.size / OpenGLRenderer.COORDS_PER_VERTEX
+            vertexCount = value.size / OpenGLHelper.COORDS_PER_VERTEX
 
             // TODO -> set the corresponding x1,y1,x2,y2... polygon coordinates
         }
 
-    private var vertexCount: Int = triangleCoords.size / OpenGLRenderer.COORDS_PER_VERTEX
-    private val result = PointF()                                      // result point from ordinary point to a OpenGL coordinate system
+    init {
 
-    var color: OpenGLColor = OpenGLColor()
+        vertexCount = triangleCoords.size / OpenGLHelper.COORDS_PER_VERTEX
+        needUpdate = false
+        vertexShaderCode = OpenGLHelper.vertexShaderCode
+        fragmentShaderCode = OpenGLHelper.fragmentShaderCode
+        positionHandle = 0
+        colorHandle = 0
+        MVPMatrixHandle = 0
+        drawOrder = shortArrayOf(0, 1, 2, 0, 2, 3)
+        vertexStride = OpenGLHelper.COORDS_PER_VERTEX * 4
+
+        color = OpenGLColor()
+        result = PointF()
+
+        // initialize vertex byte buffer for shape coordinates
+        val byteBuffer = ByteBuffer.allocateDirect(triangleCoords.size * 4)
+        byteBuffer.order(ByteOrder.nativeOrder())
+        vertexBuffer = byteBuffer.asFloatBuffer()
+
+        // generate OpenGL coordinate from the graphic coordinates
+        generateCoordinates()
+
+        vertexBuffer.put(triangleCoords)
+        vertexBuffer.position(0)
+
+        // prepare shaders and OpenGL program
+        val vertexShader = OpenGLHelper.loadShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode)
+        val fragmentShader = OpenGLHelper.loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentShaderCode)
+        program = GLES20.glCreateProgram() // create empty OpenGL Program
+        GLES20.glAttachShader(program, vertexShader) // add the vertex shader to program
+        GLES20.glAttachShader(program, fragmentShader) // add the fragment shader to program
+        GLES20.glLinkProgram(program) // create OpenGL program executables
+    }
 
     /**
      * Encapsulates the OpenGL ES instructions for drawing this shape.
-     *
-     * @param mvpMatrix - The Model View Project matrix in which to draw
+     * @param mvpMatrix the Model View Project matrix in which to draw
      * this shape.
      */
     fun draw(mvpMatrix: FloatArray) {
@@ -140,7 +162,7 @@ class Triangle(x1: Float = 0f, y1: Float = 0f, x2: Float = 100f, y2: Float = 0f,
 
         // Prepare the triangle coordinate data
         GLES20.glVertexAttribPointer(
-            positionHandle, OpenGLRenderer.COORDS_PER_VERTEX,
+            positionHandle, OpenGLHelper.COORDS_PER_VERTEX,
             GLES20.GL_FLOAT, false,
             vertexStride, vertexBuffer
         )
@@ -153,11 +175,11 @@ class Triangle(x1: Float = 0f, y1: Float = 0f, x2: Float = 100f, y2: Float = 0f,
 
         // get handle to shape's transformation matrix
         MVPMatrixHandle = GLES20.glGetUniformLocation(program, "uMVPMatrix")
-        OpenGLRenderer.checkGlError("glGetUniformLocation")
+        OpenGLHelper.checkGlError("glGetUniformLocation")
 
         // Apply the projection and view transformation
         GLES20.glUniformMatrix4fv(MVPMatrixHandle, 1, false, mvpMatrix, 0)
-        OpenGLRenderer.checkGlError("glUniformMatrix4fv")
+        OpenGLHelper.checkGlError("glUniformMatrix4fv")
 
         // Draw the triangle
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, vertexCount)
@@ -167,41 +189,23 @@ class Triangle(x1: Float = 0f, y1: Float = 0f, x2: Float = 100f, y2: Float = 0f,
     }
 
     /**
-     * Sets up the drawing object data for use in an OpenGL ES context.
+     * Generate the OpenGL coordinates in range [-1,1] for the triangle using the
+     * x1, y1, x2, y2, x3, y3 coordinates
      */
-    init {
-
-        // initialize vertex byte buffer for shape coordinates
-        val byteBuffer = ByteBuffer.allocateDirect(triangleCoords.size * 4)
-        byteBuffer.order(ByteOrder.nativeOrder())
-        vertexBuffer = byteBuffer.asFloatBuffer()
-
-        // generate OpenGL coordinate from the graphic coordinates
-        generateCoordinates()
-
-        vertexBuffer.put(triangleCoords)
-        vertexBuffer.position(0)
-
-        // prepare shaders and OpenGL program
-        val vertexShader = OpenGLRenderer.loadShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode)
-        val fragmentShader = OpenGLRenderer.loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentShaderCode)
-        program = GLES20.glCreateProgram() // create empty OpenGL Program
-        GLES20.glAttachShader(program, vertexShader) // add the vertex shader to program
-        GLES20.glAttachShader(program, fragmentShader) // add the fragment shader to program
-        GLES20.glLinkProgram(program) // create OpenGL program executables
-    }
-
     private fun generateCoordinates() {
-        getCoordinatesOpenGL(x1, y1, 0)
-        getCoordinatesOpenGL(x2, y2, 3)
-        getCoordinatesOpenGL(x3, y3, 6)
+        val n = OpenGLHelper.COORDS_PER_VERTEX
+        getCoordinatesOpenGL(x1, y1, 0 * n)
+        getCoordinatesOpenGL(x2, y2, 1 * n)
+        getCoordinatesOpenGL(x3, y3, 2 * n)
         needUpdate = false
     }
 
+    /**
+     * Get the open gl coordinates in range [-1,1]
+     */
     private fun getCoordinatesOpenGL(x: Float, y: Float, i: Int) {
-        OpenGLRenderer.matrixGestureDetector.normalizeCoordinates(x, y, result)
+        OpenGLHelper.matrixGestureDetector.normalizeCoordinates(x, y, result)
         triangleCoords[i] = result.x
         triangleCoords[i + 1] = result.y
     }
-
 }

@@ -11,6 +11,11 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!--<com.slaviboy.opengl.bigdata.BigDataSurfaceView
+        android:id="@+id/big_data_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />-->
+
     <Button
         android:layout_width="100dp"
         android:layout_height="40dp"

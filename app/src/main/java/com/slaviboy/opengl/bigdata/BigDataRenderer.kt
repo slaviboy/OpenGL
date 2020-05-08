@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package  com.slaviboy.opengl.main
+package  com.slaviboy.opengl.bigdata
 
 import android.content.Context
 import android.opengl.GLES20
@@ -22,36 +22,29 @@ import android.opengl.GLSurfaceView
 import android.opengl.Matrix
 import android.view.MotionEvent
 import com.slaviboy.opengl.R
+import com.slaviboy.opengl.main.OpenGLHelper
 import com.slaviboy.opengl.main.OpenGLHelper.enableAlpha
 import com.slaviboy.opengl.main.OpenGLHelper.fragmentShaderCode
 import com.slaviboy.opengl.main.OpenGLHelper.fragmentTextureShaderCode
-import com.slaviboy.opengl.main.OpenGLHelper.getBitmap
-import com.slaviboy.opengl.main.OpenGLHelper.getResizedBitmap
 import com.slaviboy.opengl.main.OpenGLHelper.matrixGestureDetector
 import com.slaviboy.opengl.main.OpenGLHelper.readTextFileFromResource
 import com.slaviboy.opengl.main.OpenGLHelper.vertexShaderCode
 import com.slaviboy.opengl.main.OpenGLHelper.vertexTextureShaderCode
-import com.slaviboy.opengl.shapes.fill.Circle
 import com.slaviboy.opengl.shapes.fill.Image
-import com.slaviboy.opengl.shapes.fill.Rectangle
-import com.slaviboy.opengl.shapes.fill.Triangle
 import com.slaviboy.opengl.shapes.stroke.Line
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
-class OpenGLRenderer(private val context: Context) : GLSurfaceView.Renderer {
+class BigDataRenderer(private val context: Context) : GLSurfaceView.Renderer {
 
     // shapes
-    private lateinit var triangle: Triangle
-    private lateinit var rectangle: Rectangle
-    private lateinit var circle: Circle
-    private lateinit var line: Line
-    private lateinit var image: Image
+    private lateinit var lines: ArrayList<Line>
+    private lateinit var images: ArrayList<Image>
 
-    private var MVPMatrix: FloatArray                  // model view projection matrix
-    private var projectionMatrix: FloatArray           // matrix with applied projection
-    private var viewMatrix: FloatArray                 // view matrix
-    private val transformedMatrixOpenGL: FloatArray    // matrix with transformation applied by finger gestures
+    private var MVPMatrix: FloatArray                 // model view projection matrix
+    private var projectionMatrix: FloatArray          // matrix with applied projection
+    private var viewMatrix: FloatArray                // view matrix
+    private val transformedMatrixOpenGL: FloatArray   // matrix with transformation applied by finger gestures
 
     init {
 
@@ -75,10 +68,6 @@ class OpenGLRenderer(private val context: Context) : GLSurfaceView.Renderer {
         when (action) {
 
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
-
-                // change image center
-                image.x = event.x
-                image.y = event.y
             }
         }
     }
@@ -104,13 +93,9 @@ class OpenGLRenderer(private val context: Context) : GLSurfaceView.Renderer {
         // get OpenGL matrix with the applied transformations, from finger gestures
         matrixGestureDetector.transform(MVPMatrix, transformedMatrixOpenGL)
 
-        // draw shapes with apply transformations from finger gestures
-        rectangle.draw(transformedMatrixOpenGL)
-        triangle.draw(transformedMatrixOpenGL)
-        line.draw(transformedMatrixOpenGL)
-        circle.draw(transformedMatrixOpenGL)
-
-        image.draw(transformedMatrixOpenGL)
+        for (i in lines.indices) {
+            lines[i].draw(transformedMatrixOpenGL)
+        }
     }
 
     override fun onSurfaceChanged(unused: GL10, width: Int, height: Int) {
@@ -132,7 +117,6 @@ class OpenGLRenderer(private val context: Context) : GLSurfaceView.Renderer {
         // set size and translate to center to match shape coordinates
         matrixGestureDetector.width = w
         matrixGestureDetector.height = h
-        //matrixGestureDetector.matrix.setTranslate(w / 2f, h / 2f)
 
         createShapes()
     }
@@ -145,28 +129,19 @@ class OpenGLRenderer(private val context: Context) : GLSurfaceView.Renderer {
         val width = OpenGLHelper.width
         val height = OpenGLHelper.height
 
-        // create shapes
-        line = Line(0f, 0f, width / 2f, height / 2f)
-        circle = Circle(width / 2f, height / 2f, width / 4f)
-        rectangle = Rectangle(width / 2f, height / 2f + height / 5f, width / 4f, width / 4f)
-        triangle = Triangle(width / 2f, height * (1 / 5f), width, height * (1 / 5f), width / 2f, height / 3f)
+        val widthRange = 0 until width.toInt()
+        val heightRange = 0 until height.toInt()
+        lines = ArrayList()
+        for (i in 0 until 500) {
 
-        val tenPercentWidth = (width / 10f).toInt()
-        val bitmap = getResizedBitmap(getBitmap(context, R.drawable.earth), tenPercentWidth, tenPercentWidth)
-        image = Image(bitmap, width * (1 / 5f), height / 2f + height / 5f, tenPercentWidth.toFloat(), Image.AUTO_SIZE)
-        image.useCoordinateAsCenter = true
-        image.keepSize = true
-        bitmap.recycle()
+            val x1 = widthRange.random().toFloat()
+            val y1 = heightRange.random().toFloat()
+            val x2 = widthRange.random().toFloat()
+            val y2 = heightRange.random().toFloat()
+            val line = Line(x1, y1, x2, y2)
+            line.strokeWidth = 6f
+            lines.add(line)
+        }
 
-        // set shape color
-        val color = OpenGLColor(31, 161, 237, 100)
-        line.color = color
-        circle.color = color
-        rectangle.color = color
-        triangle.color = color
-
-        // stroke width for the line
-        line.strokeWidth = 6f
     }
-
 }

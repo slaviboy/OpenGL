@@ -165,12 +165,20 @@ open class OpenGLMatrixGestureDetector(var matrix: Matrix = Matrix()) {
         result.y = coords[1]
     }
 
-    fun normalizeWidth(width: Float, isScalable: Boolean): Float {
-        var openGLWidth = (width / this.width) * OpenGLRenderer.NEAR * ratio
+    fun normalizeWidth(width: Float, isScalable: Boolean = true): Float {
+        var openGLWidth = (width / this.width) * OpenGLHelper.NEAR * ratio
         if (!isScalable) {
             openGLWidth /= this.matrix.scale()
         }
         return openGLWidth
+    }
+
+    fun normalizeHeight(height: Float, isScalable: Boolean = true): Float {
+        var openGLHeight = (height / this.height) * OpenGLHelper.NEAR
+        if (!isScalable) {
+            openGLHeight /= this.matrix.scale()
+        }
+        return openGLHeight
     }
 
     /**
@@ -185,7 +193,7 @@ open class OpenGLMatrixGestureDetector(var matrix: Matrix = Matrix()) {
             (x - (width / 2f)) / (width / 2f)
         }
 
-        return -translateX * OpenGLRenderer.NEAR * ratio
+        return -translateX * OpenGLHelper.NEAR * ratio
     }
 
     /**
@@ -200,7 +208,7 @@ open class OpenGLMatrixGestureDetector(var matrix: Matrix = Matrix()) {
             -(y - (height / 2f)) / (height / 2f)
         }
 
-        return translateY * OpenGLRenderer.NEAR
+        return translateY * OpenGLHelper.NEAR
     }
 
     /**
@@ -209,6 +217,27 @@ open class OpenGLMatrixGestureDetector(var matrix: Matrix = Matrix()) {
      */
     interface OnMatrixChangeListener {
         fun onChange(matrixGestureDetector: OpenGLMatrixGestureDetector)
+    }
+
+    /**
+     * Get current scale from the graphic matrix
+     */
+    fun getScale(): Float {
+        return matrix.scale()
+    }
+
+    /**
+     * Get current angle from the graphic matrix
+     */
+    fun getAngle(): Float {
+        return matrix.angle()
+    }
+
+    /**
+     * Get current translationg from the graphic matrix
+     */
+    fun getTranslate(): PointF {
+        return matrix.translate()
     }
 
     /**
@@ -237,10 +266,9 @@ open class OpenGLMatrixGestureDetector(var matrix: Matrix = Matrix()) {
     /**
      * Get transformations for a given matrix
      */
-    fun Matrix.transform(): PointF {
+    fun Matrix.translate(): PointF {
         val points = FloatArray(9)
         getValues(points)
         return PointF(points[Matrix.MTRANS_X], points[Matrix.MTRANS_Y])
     }
-    //endregion
 }

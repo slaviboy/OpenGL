@@ -1,9 +1,25 @@
+/*
+ * Copyright (C) 2020 Stanislav Georgiev
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.slaviboy.opengl.shapes.fill
 
 import android.graphics.PointF
 import android.opengl.GLES20
 import com.slaviboy.opengl.main.OpenGLColor
-import com.slaviboy.opengl.main.OpenGLRenderer
+import com.slaviboy.opengl.main.OpenGLHelper
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -15,8 +31,6 @@ import java.nio.FloatBuffer
  * @param r polygon radius (distance between the center and the vertices)
  */
 open class RegularPolygon(x: Float = 0f, y: Float = 0f, r: Float = 100f, numberVertices: Int = 4) {
-
-    protected var needUpdate = false
 
     var x: Float = x
         set(value) {
@@ -36,58 +50,80 @@ open class RegularPolygon(x: Float = 0f, y: Float = 0f, r: Float = 100f, numberV
             needUpdate = true
         }
 
-    var color: OpenGLColor = OpenGLColor()
-    var keepSize: Boolean = false     // weather to keep size on scale
-
+    // the number of the polygon vertices
     var numberVertices: Int = numberVertices
         set(value) {
             field = value
 
             // we need to update the byte buffer as well
-            circleCoords = FloatArray((numberVertices + 2) * OpenGLRenderer.COORDS_PER_VERTEX)
-            val byteBuffer = ByteBuffer.allocateDirect(circleCoords.size * 4)
+            polygonCoords = FloatArray((numberVertices + 2) * OpenGLHelper.COORDS_PER_VERTEX)
+            val byteBuffer = ByteBuffer.allocateDirect(polygonCoords.size * 4)
             byteBuffer.order(ByteOrder.nativeOrder())
             vertexBuffer = byteBuffer.asFloatBuffer()
             needUpdate = true
         }
 
+    // angle where the rotation is started
     var startAngle = 45
         set(value) {
             field = value
             needUpdate = true
         }
 
-    private var program: Int
-    private var positionHandle = 0
-    private var colorHandle = 0
-    private var MVPMatrixHandle = 0
-    private val vertexStride: Int = OpenGLRenderer.COORDS_PER_VERTEX * 4               // 4 bytes per vertex
-    protected lateinit var vertexBuffer: FloatBuffer
-    private var circleCoords = FloatArray((numberVertices + 2) * OpenGLRenderer.COORDS_PER_VERTEX)
-    private val result = PointF()                                        // result point from ordinary point to a OpenGL coordinate system
+    private var needUpdate: Boolean             // if the array rectCoords should be generated again once the draw method is called
 
-    private val vertexShaderCode: String =
-        """
-        uniform mat4 uMVPMatrix;
-        attribute vec4 vPosition;
-        void main() {
-          gl_Position = uMVPMatrix * vPosition;
-        }
-        """.trimIndent()
+    private val program: Int                    // program for attaching the shaders
+    private var vertexBuffer: FloatBuffer       // buffer fo the vertex
+    private var positionHandle: Int             // handle for the position
+    private var colorHandle: Int                // handle for the color
+    private var MVPMatrixHandle: Int            // handle for the MVP matrix
+    private val drawOrder: ShortArray           // order to draw vertices
+    private val vertexStride: Int               // bytes per vertex
+    private var result: PointF                  // result point from graphic point to a OpenGL coordinate system
 
-    private val fragmentShaderCode: String =
-        """
-        precision mediump float;
-        uniform vec4 vColor;
-        void main() {
-          gl_FragColor = vColor;
+    var vertexShaderCode: String                // shader with the vertex
+    var fragmentShaderCode: String              // shader with the fragment
+    var color: OpenGLColor                      // color for the shape
+    var keepSize: Boolean = false               // weather to keep shape size when scale is made
+
+    var polygonCoords = FloatArray((numberVertices + 2) * OpenGLHelper.COORDS_PER_VERTEX)
+        set(value) {
+            field = value
+
+            val byteBuffer: ByteBuffer = ByteBuffer.allocateDirect(polygonCoords.size * 4)
+            byteBuffer.order(ByteOrder.nativeOrder())
+            vertexBuffer = byteBuffer.asFloatBuffer()
+            vertexBuffer.put(polygonCoords)
+            vertexBuffer.position(0)
+
+            // TODO -> set the corresponding x,y,width,height rectangle coordinates
         }
-        """.trimIndent()
 
     init {
 
-        val vertexShader = OpenGLRenderer.loadShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode)
-        val fragmentShader = OpenGLRenderer.loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentShaderCode)
+        needUpdate = false
+        vertexShaderCode = OpenGLHelper.vertexShaderCode
+        fragmentShaderCode = OpenGLHelper.fragmentShaderCode
+        positionHandle = 0
+        colorHandle = 0
+        MVPMatrixHandle = 0
+        drawOrder = shortArrayOf(0, 1, 2, 0, 2, 3)
+        vertexStride = OpenGLHelper.COORDS_PER_VERTEX * 4
+        color = OpenGLColor()
+        result = PointF()
+
+        val byteBuffer: ByteBuffer = ByteBuffer.allocateDirect(polygonCoords.size * 4)
+        byteBuffer.order(ByteOrder.nativeOrder())
+        vertexBuffer = byteBuffer.asFloatBuffer()
+
+        // generate OpenGL coordinate from the graphic coordinates
+        generateCoordinates()
+
+        vertexBuffer.put(polygonCoords)
+        vertexBuffer.position(0)
+
+        val vertexShader = OpenGLHelper.loadShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode)
+        val fragmentShader = OpenGLHelper.loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentShaderCode)
         program = GLES20.glCreateProgram()                                              // create empty OpenGL ES Program
         GLES20.glAttachShader(program, vertexShader)                                    // add the vertex shader to program
         GLES20.glAttachShader(program, fragmentShader)                                  // add the fragment shader to program
@@ -102,7 +138,7 @@ open class RegularPolygon(x: Float = 0f, y: Float = 0f, r: Float = 100f, numberV
             val updateCoordinate = if (needUpdate) true else !keepSize
             generateCoordinates(updateCoordinate)
 
-            vertexBuffer.put(circleCoords)
+            vertexBuffer.put(polygonCoords)
             vertexBuffer.position(0)
         }
 
@@ -116,7 +152,7 @@ open class RegularPolygon(x: Float = 0f, y: Float = 0f, r: Float = 100f, numberV
 
         // Prepare the triangle coordinate data
         GLES20.glVertexAttribPointer(
-            positionHandle, OpenGLRenderer.COORDS_PER_VERTEX,
+            positionHandle, OpenGLHelper.COORDS_PER_VERTEX,
             GLES20.GL_FLOAT, false,
             vertexStride, vertexBuffer
         )
@@ -138,33 +174,33 @@ open class RegularPolygon(x: Float = 0f, y: Float = 0f, r: Float = 100f, numberV
         GLES20.glDisableVertexAttribArray(positionHandle)
     }
 
-    private fun generateCoordinates(updateCoordinate: Boolean) {
+    /**
+     * Generate the OpenGL coordinates in range [-1,1] for the polygon using the
+     * x, y as center
+     */
+    private fun generateCoordinates(updateCoordinate: Boolean = true) {
 
         if (updateCoordinate) {
-            getCoordinatesOpenGL(x, y)  // center
+            OpenGLHelper.matrixGestureDetector.normalizeCoordinates(x, y, result)  // center
         }
 
-        val openGLRadius = OpenGLRenderer.matrixGestureDetector.normalizeWidth(radius, !keepSize)
+        val openGLRadius = OpenGLHelper.matrixGestureDetector.normalizeWidth(radius, !keepSize)
 
-        circleCoords[0] = result.x
-        circleCoords[1] = result.y
-        circleCoords[2] = 0f
+        val n = OpenGLHelper.COORDS_PER_VERTEX
+        polygonCoords[0] = result.x
+        polygonCoords[1] = result.y
+        polygonCoords[2] = 0f
         for (i in 1 until numberVertices + 1) {
             val j = startAngle + (i) * ((360.0) / (numberVertices))
-            circleCoords[i * 3 + 0] = openGLRadius * Math.cos(3.14 / 180 * j).toFloat() + result.x
-            circleCoords[i * 3 + 1] = openGLRadius * Math.sin(3.14 / 180 * j).toFloat() + result.y
-            // circleCoords[i * 3 + 2] = 0f
+            polygonCoords[i * n + 0] = openGLRadius * Math.cos(3.14 / 180 * j).toFloat() + result.x
+            polygonCoords[i * n + 1] = openGLRadius * Math.sin(3.14 / 180 * j).toFloat() + result.y
         }
 
         // set last vertex to match first which starts from index 1
-        circleCoords[(numberVertices + 2 - 1) * 3 + 0] = circleCoords[1 * 3 + 0]
-        circleCoords[(numberVertices + 2 - 1) * 3 + 1] = circleCoords[1 * 3 + 1]
+        polygonCoords[(numberVertices + 2 - 1) * n + 0] = polygonCoords[1 * n + 0]
+        polygonCoords[(numberVertices + 2 - 1) * n + 1] = polygonCoords[1 * n + 1]
 
         needUpdate = false
-    }
-
-    private fun getCoordinatesOpenGL(x: Float, y: Float) {
-        OpenGLRenderer.matrixGestureDetector.normalizeCoordinates(x, y, result)
     }
 
 }
