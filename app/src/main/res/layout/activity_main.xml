@@ -6,21 +6,32 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <com.slaviboy.opengl.main.OpenGLSurfaceView
+    <com.slaviboy.openglexamples.single.OpenGLSurfaceView
         android:id="@+id/open_gl_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!--<com.slaviboy.opengl.bigdata.BigDataSurfaceView
-        android:id="@+id/big_data_view"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />-->
+    <!-- <com.slaviboy.openglexamples.multiple.OpenGLSurfaceView
+         android:id="@+id/open_gl_view"
+         android:layout_width="match_parent"
+         android:layout_height="match_parent" />-->
 
     <Button
-        android:layout_width="100dp"
+        android:id="@+id/random"
+        android:layout_width="wrap_content"
         android:layout_height="40dp"
-        android:text="Button"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        android:onClick="random"
+        android:text="Random"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent" />
+
+    <Button
+        android:id="@+id/style"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:onClick="changeStyle"
+        android:text="Stroke/Fill"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toRightOf="@+id/random" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

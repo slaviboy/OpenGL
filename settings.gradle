@@ -1,2 +1,3 @@
+include ':opengl'
 include ':app'
 rootProject.name = "OpenGL"
