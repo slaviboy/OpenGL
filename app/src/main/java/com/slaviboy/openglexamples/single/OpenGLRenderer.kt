@@ -59,8 +59,10 @@ class OpenGLRenderer(val context: Context, var openGLHelper: OpenGLHelper, reque
 
     override fun onDrawFrame(unused: GL10) {
 
+        // clear the scene
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
 
+        // set MVPMatrix
         Matrix.setLookAtM(viewMatrix, 0, 0f, 0f, -3f, 0f, 0f, 0f, 0f, 1.0f, 0.0f)
         Matrix.multiplyMM(MVPMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
 
@@ -78,14 +80,16 @@ class OpenGLRenderer(val context: Context, var openGLHelper: OpenGLHelper, reque
      */
     override fun onSurfaceChanged(unused: GL10, width: Int, height: Int) {
 
+        // if alpha is enabled
         if (OpenGLStatic.ENABLE_ALPHA) {
             GLES20.glEnable(GLES20.GL_BLEND)
             GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA)
         }
 
+        // set device size and ratio
         OpenGLStatic.setComponents(width.toFloat(), height.toFloat())
 
-        // Adjust the viewport based on geometry changes, such as screen rotation
+        // adjust the viewport based on geometry changes, such as screen rotation
         GLES20.glViewport(0, 0, width, height)
 
         // this projection matrix is applied to object coordinates
@@ -95,6 +99,7 @@ class OpenGLRenderer(val context: Context, var openGLHelper: OpenGLHelper, reque
         openGLHelper.mainGestureDetector.matrix = android.graphics.Matrix()
         openGLHelper.mainGestureDetector.matrix.postTranslate(OpenGLStatic.DEVICE_HALF_WIDTH, OpenGLStatic.DEVICE_HALF_HEIGHT)
 
+        // create the shapes
         openGLHelper.createShapes(context)
     }
 }

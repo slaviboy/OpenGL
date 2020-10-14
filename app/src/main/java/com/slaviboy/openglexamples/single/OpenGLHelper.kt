@@ -37,7 +37,7 @@ import com.slaviboy.openglexamples.R
  */
 class OpenGLHelper : View.OnTouchListener {
 
-    // matrix used for allying transformations to all OpenGL objects: line, images, triangles..
+    // gesture detector used for applying transformations to all OpenGL objects: line, images, triangles..
     var mainGestureDetector: OpenGLMatrixGestureDetector =
         OpenGLMatrixGestureDetector()
 
@@ -69,7 +69,19 @@ class OpenGLHelper : View.OnTouchListener {
         if (context != null) {
             val imageProgram = OpenGLStatic.setTextureProgram()
             val textureHandler = OpenGLStatic.loadTexture(context, R.drawable.earth)
-            image = Image(302f, 303f, 50f, 50f, 100f, 100f, textureHandler, imageProgram, true, true, false, mainGestureDetector)
+            image = Image(
+                bitmapWidth = 302f,
+                bitmapHeight = 303f,
+                x = 50f,
+                y = 50f,
+                width = 100f,
+                height = 100f,
+                textureHandle = textureHandler,
+                preloadProgram = imageProgram,
+                keepSize = true,
+                usePositionAsCenter = true,
+                gestureDetector = mainGestureDetector
+            )
         }
         strokeFillShapes()
     }
@@ -187,19 +199,82 @@ class OpenGLHelper : View.OnTouchListener {
         }
 
         // create shapes
-        line = Line(100f, 800f, 300f, 800f, Color.RED, 10f, true, mainGestureDetector, singleColorsProgram)
-        circle = Circle(700f, 700f, 110f, Color.MAGENTA, 5f, true, mainGestureDetector, singleColorsProgram, style)
-        ellipse = Ellipse(800f, 280f, 50f, 200f, Color.CYAN, 5f, true, mainGestureDetector, singleColorsProgram, style)
-        rectangle = Rectangle(300f, 200f, 300f, 150f, Color.BLUE, 5f, true, mainGestureDetector, singleColorsProgram, style)
-        triangle = Triangle(40f, 550f, 200f, 350f, 310f, 650f, Color.RED, 5f, true, mainGestureDetector, singleColorsProgram, style)
-        regularPolygon = RegularPolygon(500f, 500f, 100f, 0f, Color.GREEN, 5f, true, mainGestureDetector, singleColorsProgram, style, 6)
+        line = Line(
+            x1 = 100f, y1 = 800f,
+            x2 = 300f, y2 = 800f,
+            color = Color.BLACK,
+            strokeWidth = 10f,
+            gestureDetector = mainGestureDetector,
+            preloadProgram = singleColorsProgram
+        )
+
+        circle = Circle(
+            x = 700f,
+            y = 700f,
+            radius = 110f,
+            color = Color.BLACK,
+            strokeWidth = 5f,
+            gestureDetector = mainGestureDetector,
+            preloadProgram = singleColorsProgram,
+            style = style
+        )
+
+        ellipse = Ellipse(
+            x = 800f,
+            y = 280f,
+            rx = 50f,
+            ry = 200f,
+            color = Color.BLACK,
+            strokeWidth = 5f,
+            gestureDetector = mainGestureDetector,
+            preloadProgram = singleColorsProgram,
+            style = style
+        )
+
+        rectangle = Rectangle(
+            x = 300f,
+            y = 200f,
+            width = 300f,
+            height = 150f,
+            color = Color.BLACK,
+            strokeWidth = 5f,
+            gestureDetector = mainGestureDetector,
+            preloadProgram = singleColorsProgram,
+            style = style
+        )
+
+        triangle = Triangle(
+            x1 = 40f, y1 = 550f,
+            x2 = 200f, y2 = 350f,
+            x3 = 310f,
+            y3 = 650f,
+            color = Color.BLACK,
+            strokeWidth = 5f,
+            gestureDetector = mainGestureDetector,
+            preloadProgram = singleColorsProgram,
+            style = style
+        )
+
+        regularPolygon = RegularPolygon(
+            x = 500f,
+            y = 500f,
+            radius = 100f,
+            angle = 0f,
+            numberVertices = 6,
+            color = Color.BLACK,
+            strokeWidth = 5f,
+            gestureDetector = mainGestureDetector,
+            preloadProgram = singleColorsProgram,
+            style = style
+        )
+
         passByCurve = PassByCurve(
             floatArrayOf(
                 10.0f, 1042.0f, 50.0f, 1012.0f, 90.0f, 951.0f, 130.0f, 943.0f, 170.0f, 939.0f, 210.0f, 1099.0f, 250.0f, 1021.0f,
                 290.0f, 1085.0f, 330.0f, 1032.0f, 370.0f, 912.0f, 410.0f, 983.0f, 450.0f, 927.0f, 490.0f, 1021.0f, 530.0f, 935.0f,
                 570.0f, 976.0f, 610.0f, 1063.0f, 650.0f, 1055.0f, 690.0f, 1089.0f, 730.0f, 1022.0f, 770.0f, 1052.0f, 810.0f,
                 950.0f, 850.0f, 920.0f, 890.0f, 925.0f, 930.0f, 1047.0f, 970.0f, 993.0f
-            ), Color.BLUE, 5f, true, mainGestureDetector, singleColorsProgram, false, 1f, 40
+            ), Color.BLACK, 5f, true, mainGestureDetector, singleColorsProgram, false, 1f, 40
         )
 
         requestRenderListener.invoke()

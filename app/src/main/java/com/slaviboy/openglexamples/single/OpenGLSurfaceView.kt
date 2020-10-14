@@ -39,11 +39,12 @@ class OpenGLSurfaceView : GLSurfaceView {
 
     init {
 
+        // whether to enable alpha
         if (ENABLE_ALPHA) {
             holder.setFormat(PixelFormat.TRANSLUCENT)
         }
 
-        // create an OpenGL ES 2.0 context.
+        // create an OpenGL ES 2.0 context
         setEGLContextClientVersion(2)
 
         // fix for error No Config chosen
@@ -66,5 +67,4 @@ class OpenGLSurfaceView : GLSurfaceView {
         // render the view only when there is a change in the drawing data
         renderMode = RENDERMODE_WHEN_DIRTY
     }
-
 }

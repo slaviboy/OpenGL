@@ -330,9 +330,9 @@ class OpenGLHelper : View.OnTouchListener {
                 900f, 600f, 950f, 700f, 400f, 900f   // third triangle coordinates
             ),
             intArrayOf(
-                Color.RED,   // first triangle colors
-                Color.GREEN, // second triangle colors
-                Color.YELLOW // third triangle colors
+                Color.RED,   // first triangle color
+                Color.GREEN, // second triangle color
+                Color.YELLOW // third triangle color
             ),
             style = STYLE_FILL,
             preloadProgram = program,
