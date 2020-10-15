@@ -5,8 +5,8 @@ import android.os.Build
 import com.google.common.truth.Truth.assertThat
 import com.slaviboy.opengl.main.OpenGLMatrixGestureDetector
 import com.slaviboy.opengl.main.OpenGLStatic
-import com.slaviboy.opengl.shapes.multiple.Shapes.Companion.STYLE_FILL
-import com.slaviboy.opengl.shapes.multiple.Shapes.Companion.STYLE_STROKE
+import com.slaviboy.opengl.shapes.Shapes.Companion.STYLE_FILL
+import com.slaviboy.opengl.shapes.Shapes.Companion.STYLE_STROKE
 import com.slaviboy.opengl.shapes.multiple.Rectangles
 import org.junit.Test
 import org.junit.runner.RunWith

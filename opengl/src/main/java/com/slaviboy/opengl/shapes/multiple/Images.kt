@@ -24,7 +24,7 @@ import com.slaviboy.opengl.main.OpenGLStatic
 import com.slaviboy.opengl.main.OpenGLStatic.DEVICE_HEIGHT
 import com.slaviboy.opengl.main.OpenGLStatic.DEVICE_WIDTH
 import com.slaviboy.opengl.main.OpenGLStatic.delete
-import com.slaviboy.opengl.shapes.multiple.Shapes.Companion.COORDINATES_PER_VERTEX
+import com.slaviboy.opengl.shapes.Shapes.Companion.COORDINATES_PER_VERTEX
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer

@@ -17,16 +17,8 @@
 package com.slaviboy.opengl.shapes.single
 
 import android.graphics.Color
-import android.graphics.PointF
-import android.opengl.GLES20
-import com.slaviboy.opengl.main.OpenGLColor
 import com.slaviboy.opengl.main.OpenGLMatrixGestureDetector
-import com.slaviboy.opengl.main.OpenGLStatic
-import com.slaviboy.opengl.shapes.multiple.Shapes
 import com.slaviboy.opengl.shapes.multiple.Triangles
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.nio.FloatBuffer
 
 /**
  * A 2D representation of single triangle, using OpenGL 2.0

@@ -39,4 +39,4 @@ class Circles(
     preloadProgram: Int = -1,
     style: Int = STYLE_FILL,
     useSingleColor: Boolean = false
-) : RegularPolygons(coordinatesInfo, colors, strokeWidth, isVisible, gestureDetector, preloadProgram, style, 360, useSingleColor)
+) : RegularPolygons(coordinatesInfo, colors, strokeWidth, isVisible, gestureDetector, preloadProgram, style, 0f, 360, useSingleColor)

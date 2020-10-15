@@ -45,8 +45,9 @@ open class RegularPolygon(
     gestureDetector: OpenGLMatrixGestureDetector,
     preloadProgram: Int = -1,
     style: Int = STYLE_FILL,
+    innerDepth: Float = 0f,
     numberVertices: Int = 4
-) : RegularPolygons(floatArrayOf(x, y, radius, angle), intArrayOf(color), strokeWidth, isVisible, gestureDetector, preloadProgram, style, numberVertices, true) {
+) : RegularPolygons(floatArrayOf(x, y, radius, angle), intArrayOf(color), strokeWidth, isVisible, gestureDetector, preloadProgram, style, innerDepth, numberVertices, true) {
 
     var x: Float = x
         set(value) {

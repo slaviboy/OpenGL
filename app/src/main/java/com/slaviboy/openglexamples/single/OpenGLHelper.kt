@@ -26,8 +26,8 @@ import com.slaviboy.opengl.main.OpenGLStatic.DEVICE_HALF_HEIGHT
 import com.slaviboy.opengl.main.OpenGLStatic.DEVICE_HALF_WIDTH
 import com.slaviboy.opengl.main.OpenGLStatic.DEVICE_HEIGHT
 import com.slaviboy.opengl.main.OpenGLStatic.DEVICE_WIDTH
-import com.slaviboy.opengl.shapes.multiple.Shapes.Companion.STYLE_FILL
-import com.slaviboy.opengl.shapes.multiple.Shapes.Companion.STYLE_STROKE
+import com.slaviboy.opengl.shapes.Shapes.Companion.STYLE_FILL
+import com.slaviboy.opengl.shapes.Shapes.Companion.STYLE_STROKE
 import com.slaviboy.opengl.shapes.single.*
 import com.slaviboy.openglexamples.R
 
@@ -45,10 +45,12 @@ class OpenGLHelper : View.OnTouchListener {
     lateinit var triangle: Triangle                  // OpenGL triangle object
     lateinit var rectangle: Rectangle                // OpenGL rectangle object
     lateinit var regularPolygon: RegularPolygon      // OpenGL regular polygons object
+    lateinit var starPolygon: RegularPolygon         // OpenGL star polygons object
     lateinit var circle: Circle                      // OpenGL circle object
     lateinit var image: Image                        // OpenGL image object
     lateinit var ellipse: Ellipse                    // OpenGL ellipse object
-    lateinit var passByCurve: PassByCurve            // OpenGL pass by curve
+    lateinit var passByCurve: PassByCurve            // OpenGL pass by curve object
+    lateinit var irregularPolygon: IrregularPolygon  // OpenGL irregular polygon object
 
     lateinit var requestRenderListener: (() -> Unit) // listener for requesting new rendering(redrawing of the scene)
 
@@ -78,11 +80,12 @@ class OpenGLHelper : View.OnTouchListener {
                 height = 100f,
                 textureHandle = textureHandler,
                 preloadProgram = imageProgram,
-                keepSize = true,
-                usePositionAsCenter = true,
+                keepSize = false,
+                usePositionAsCenter = false,
                 gestureDetector = mainGestureDetector
             )
         }
+
         strokeFillShapes()
     }
 
@@ -198,21 +201,25 @@ class OpenGLHelper : View.OnTouchListener {
             STYLE_FILL
         }
 
+        // update image position
+        image.x = 50f
+        image.y = 50f
+
         // create shapes
         line = Line(
-            x1 = 100f, y1 = 800f,
-            x2 = 300f, y2 = 800f,
-            color = Color.BLACK,
-            strokeWidth = 10f,
+            x1 = 350f, y1 = 100f,
+            x2 = 730f, y2 = 100f,
+            color = Color.RED,
+            strokeWidth = 5f,
             gestureDetector = mainGestureDetector,
             preloadProgram = singleColorsProgram
         )
 
         circle = Circle(
-            x = 700f,
-            y = 700f,
-            radius = 110f,
-            color = Color.BLACK,
+            x = 830f,
+            y = 750f,
+            radius = 100f,
+            color = Color.GREEN,
             strokeWidth = 5f,
             gestureDetector = mainGestureDetector,
             preloadProgram = singleColorsProgram,
@@ -220,7 +227,7 @@ class OpenGLHelper : View.OnTouchListener {
         )
 
         ellipse = Ellipse(
-            x = 800f,
+            x = 860f,
             y = 280f,
             rx = 50f,
             ry = 200f,
@@ -232,11 +239,11 @@ class OpenGLHelper : View.OnTouchListener {
         )
 
         rectangle = Rectangle(
-            x = 300f,
+            x = 400f,
             y = 200f,
             width = 300f,
             height = 150f,
-            color = Color.BLACK,
+            color = Color.BLUE,
             strokeWidth = 5f,
             gestureDetector = mainGestureDetector,
             preloadProgram = singleColorsProgram,
@@ -244,11 +251,10 @@ class OpenGLHelper : View.OnTouchListener {
         )
 
         triangle = Triangle(
-            x1 = 40f, y1 = 550f,
+            x1 = 40f, y1 = 350f,
             x2 = 200f, y2 = 350f,
-            x3 = 310f,
-            y3 = 650f,
-            color = Color.BLACK,
+            x3 = 300f, y3 = 550f,
+            color = Color.CYAN,
             strokeWidth = 5f,
             gestureDetector = mainGestureDetector,
             preloadProgram = singleColorsProgram,
@@ -256,25 +262,56 @@ class OpenGLHelper : View.OnTouchListener {
         )
 
         regularPolygon = RegularPolygon(
-            x = 500f,
+            x = 700f,
             y = 500f,
             radius = 100f,
             angle = 0f,
             numberVertices = 6,
-            color = Color.BLACK,
+            color = Color.YELLOW,
             strokeWidth = 5f,
             gestureDetector = mainGestureDetector,
             preloadProgram = singleColorsProgram,
             style = style
         )
 
+        starPolygon = RegularPolygon(
+            x = 450f,
+            y = 500f,
+            radius = 100f,
+            angle = -18f,
+            numberVertices = 5,
+            color = Color.RED,
+            strokeWidth = 5f,
+            gestureDetector = mainGestureDetector,
+            preloadProgram = singleColorsProgram,
+            style = style,
+            innerDepth = 0.4f
+        )
+
         passByCurve = PassByCurve(
-            floatArrayOf(
+            coordinates = floatArrayOf(
                 10.0f, 1042.0f, 50.0f, 1012.0f, 90.0f, 951.0f, 130.0f, 943.0f, 170.0f, 939.0f, 210.0f, 1099.0f, 250.0f, 1021.0f,
                 290.0f, 1085.0f, 330.0f, 1032.0f, 370.0f, 912.0f, 410.0f, 983.0f, 450.0f, 927.0f, 490.0f, 1021.0f, 530.0f, 935.0f,
                 570.0f, 976.0f, 610.0f, 1063.0f, 650.0f, 1055.0f, 690.0f, 1089.0f, 730.0f, 1022.0f, 770.0f, 1052.0f, 810.0f,
                 950.0f, 850.0f, 920.0f, 890.0f, 925.0f, 930.0f, 1047.0f, 970.0f, 993.0f
-            ), Color.BLACK, 5f, true, mainGestureDetector, singleColorsProgram, false, 1f, 40
+            ),
+            color = Color.DKGRAY,
+            strokeWidth = 5f,
+            gestureDetector = mainGestureDetector,
+            preloadProgram = singleColorsProgram,
+            isClosed = false,
+            tension = 1f,
+            numOfSegments = 40
+        )
+
+        irregularPolygon = IrregularPolygon(
+            coordinates = floatArrayOf(0f, 500f, 100f, 500f, 100f, 600f, 400f, 700f, 600f, 700f, 600f, 750f, 200f, 800f, 300f, 700f, 100f, 650f, 150f, 800f, 0f, 800f, 0f, 500f),
+            //isClosed = true,
+            color = Color.MAGENTA,
+            strokeWidth = 5f,
+            gestureDetector = mainGestureDetector,
+            preloadProgram = singleColorsProgram,
+            style = style
         )
 
         requestRenderListener.invoke()
@@ -294,8 +331,10 @@ class OpenGLHelper : View.OnTouchListener {
         rectangle.draw(transformedMatrixOpenGL)
         triangle.draw(transformedMatrixOpenGL)
         regularPolygon.draw(transformedMatrixOpenGL)
+        starPolygon.draw(transformedMatrixOpenGL)
         image.draw(transformedMatrixOpenGL)
         passByCurve.draw(transformedMatrixOpenGL)
+        irregularPolygon.draw(transformedMatrixOpenGL)
     }
 
 }

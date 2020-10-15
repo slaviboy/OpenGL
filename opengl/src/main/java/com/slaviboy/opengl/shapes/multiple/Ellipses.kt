@@ -17,6 +17,7 @@
 package com.slaviboy.opengl.shapes.multiple
 
 import com.slaviboy.opengl.main.OpenGLMatrixGestureDetector
+import com.slaviboy.opengl.shapes.Shapes
 
 /**
  * A 2D ellipses for use as a drawn object using OpenGL 2.0
@@ -41,4 +42,4 @@ open class Ellipses(
     val style: Int = STYLE_FILL,
     val numberOfVertices: Int = 360,
     useSingleColor: Boolean = false
-) : Shapes(getEllipsesCoordinatesByStyle(style, coordinatesInfo, numberOfVertices), colors, strokeWidth, isVisible, gestureDetector, getTypeByStyle(style), getRegularPolygonsNumberOfVerticesFromStyle(style, numberOfVertices), preloadProgram, useSingleColor)
+) : Shapes(getEllipsesCoordinatesByStyle(style, coordinatesInfo, numberOfVertices), colors, strokeWidth, isVisible, gestureDetector, getTypeByStyle(style), getRegularPolygonsNumberOfVerticesFromStyle(style, numberOfVertices, 0f), preloadProgram, useSingleColor)

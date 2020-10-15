@@ -5,9 +5,8 @@ import android.os.Build
 import com.google.common.truth.Truth
 import com.slaviboy.opengl.main.OpenGLMatrixGestureDetector
 import com.slaviboy.opengl.main.OpenGLStatic
-import com.slaviboy.opengl.shapes.multiple.Rectangles
 import com.slaviboy.opengl.shapes.multiple.RegularPolygons
-import com.slaviboy.opengl.shapes.multiple.Shapes
+import com.slaviboy.opengl.shapes.Shapes
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner

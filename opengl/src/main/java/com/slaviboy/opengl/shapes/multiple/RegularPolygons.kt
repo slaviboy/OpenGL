@@ -17,6 +17,7 @@
 package com.slaviboy.opengl.shapes.multiple
 
 import com.slaviboy.opengl.main.OpenGLMatrixGestureDetector
+import com.slaviboy.opengl.shapes.Shapes
 
 /**
  * A 2D regular polygons for use as a drawn object using OpenGL 2.0
@@ -39,9 +40,10 @@ open class RegularPolygons(
     gestureDetector: OpenGLMatrixGestureDetector,
     preloadProgram: Int = -1,
     val style: Int = STYLE_FILL,
+    var innerDepth: Float = 0f,
     numberOfVertices: Int = 4,
     useSingleColor: Boolean = false
-) : Shapes(getRegularPolygonsCoordinatesByStyle(style, coordinatesInfo, numberOfVertices), colors, strokeWidth, isVisible, gestureDetector, getTypeByStyle(style), getRegularPolygonsNumberOfVerticesFromStyle(style, numberOfVertices), preloadProgram, useSingleColor) {
+) : Shapes(getRegularPolygonsCoordinatesByStyle(style, coordinatesInfo, numberOfVertices, innerDepth), colors, strokeWidth, isVisible, gestureDetector, getTypeByStyle(style), getRegularPolygonsNumberOfVerticesFromStyle(style, numberOfVertices, innerDepth), preloadProgram, useSingleColor) {
 
     var numberOfVertices: Int = numberOfVertices
         set(value) {
@@ -54,7 +56,7 @@ open class RegularPolygons(
             field = value
 
             // update the number of vertices, although it is expensive operation and try to avoid it
-            numberOfVerticesPerShape = getRegularPolygonsNumberOfVerticesFromStyle(style, numberOfVertices)
+            numberOfVerticesPerShape = getRegularPolygonsNumberOfVerticesFromStyle(style, numberOfVertices, innerDepth)
             setShape(coordinatesInfo, this.colors, true)
         }
 }

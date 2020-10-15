@@ -27,7 +27,7 @@ import com.slaviboy.opengl.main.OpenGLStatic.DEVICE_HALF_WIDTH
 import com.slaviboy.opengl.main.OpenGLStatic.DEVICE_HEIGHT
 import com.slaviboy.opengl.main.OpenGLStatic.DEVICE_WIDTH
 import com.slaviboy.opengl.shapes.multiple.*
-import com.slaviboy.opengl.shapes.multiple.Shapes.Companion.STYLE_FILL
+import com.slaviboy.opengl.shapes.Shapes.Companion.STYLE_FILL
 import com.slaviboy.openglexamples.R
 
 /**

@@ -18,6 +18,7 @@ package com.slaviboy.opengl.shapes.multiple
 
 import android.opengl.GLES20
 import com.slaviboy.opengl.main.OpenGLMatrixGestureDetector
+import com.slaviboy.opengl.shapes.Shapes
 
 /**
  * A 2D representation of multiple lines, using OpenGL ES2.0

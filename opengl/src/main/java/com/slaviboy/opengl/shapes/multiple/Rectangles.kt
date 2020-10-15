@@ -17,6 +17,7 @@
 package com.slaviboy.opengl.shapes.multiple
 
 import com.slaviboy.opengl.main.OpenGLMatrixGestureDetector
+import com.slaviboy.opengl.shapes.Shapes
 
 /**
  * A 2D rectangles for use as a drawn object using OpenGL 2.0

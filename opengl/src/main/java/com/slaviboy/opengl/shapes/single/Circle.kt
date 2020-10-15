@@ -41,4 +41,4 @@ class Circle(
     gestureDetector: OpenGLMatrixGestureDetector,
     preloadProgram: Int = -1,
     style: Int = STYLE_FILL
-) : RegularPolygon(x, y, radius, 0f, color, strokeWidth, isVisible, gestureDetector, preloadProgram, style, 360)
+) : RegularPolygon(x, y, radius, 0f, color, strokeWidth, isVisible, gestureDetector, preloadProgram, style, 0f, 360)

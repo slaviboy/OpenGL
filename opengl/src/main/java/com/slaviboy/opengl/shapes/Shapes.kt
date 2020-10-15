@@ -14,7 +14,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package com.slaviboy.opengl.shapes.multiple
+package com.slaviboy.opengl.shapes
 
 import android.graphics.Color
 import android.graphics.PointF
@@ -24,6 +24,10 @@ import com.slaviboy.opengl.main.OpenGLMatrixGestureDetector
 import com.slaviboy.opengl.main.OpenGLStatic
 import com.slaviboy.opengl.main.OpenGLStatic.concat
 import com.slaviboy.opengl.main.OpenGLStatic.delete
+import com.slaviboy.opengl.shapes.multiple.Ellipses
+import com.slaviboy.opengl.shapes.multiple.Rectangles
+import com.slaviboy.opengl.shapes.multiple.RegularPolygons
+import com.slaviboy.opengl.shapes.multiple.Triangles
 import com.slaviboy.opengl.shapes.single.PassByCurve
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -240,7 +244,7 @@ open class Shapes(
             when (this) {
                 is Rectangles -> getRectanglesCoordinatesByStyle(style, coordinates)
                 is Triangles -> getTrianglesCoordinatesByStyle(style, coordinates)
-                is RegularPolygons -> getRegularPolygonsCoordinatesByStyle(style, coordinates, numberOfVertices)
+                is RegularPolygons -> getRegularPolygonsCoordinatesByStyle(style, coordinates, numberOfVertices, innerDepth)
                 is Ellipses -> getEllipsesCoordinatesByStyle(style, coordinates, numberOfVertices)
                 is PassByCurve -> getPassByCurveCoordinates(coordinates, isClosed, tension, numOfSegments)
                 else -> coordinates
@@ -507,7 +511,7 @@ open class Shapes(
                     GLES20.GL_TRIANGLES
                 }
                 else -> {
-                    // for shapes made out of lines
+                    // for shapes made out of lines, equivalent to 'moveTo' and then 'lineTo'
                     GLES20.GL_LINES
                 }
             }
@@ -706,8 +710,14 @@ open class Shapes(
          * @param style style for the shape fill or stroke
          * @param coordinates array with input coordinates for the polygon
          * @param numberOfSegments the number of segments for the polygon for example triangle: 3, rectangle:4, pentagon:5,...
+         * @param innerDepth inner depth in range between [0,1] determine the star like shapes
          */
-        fun getRegularPolygonsCoordinatesByStyle(style: Int, coordinates: FloatArray, numberOfSegments: Int): FloatArray {
+        fun getRegularPolygonsCoordinatesByStyle(style: Int, coordinates: FloatArray, numberOfSegments: Int, innerDepth: Float): FloatArray {
+
+            // if inner depth is set create a star object
+            if (innerDepth > 0) {
+                return getStarCoordinatesByStyle(style, coordinates, numberOfSegments, innerDepth)
+            }
 
             // how many coordinates are needed when drawing the
             val coordinatesPerSegment = if (style == STYLE_FILL) {
@@ -795,21 +805,155 @@ open class Shapes(
         }
 
         /**
+         * Method that return the actual coordinates that are generated from the input coordinates for particular polygon. If the style
+         * is set to STYLE_STROKE then lines are drawn to form the stroke of the polygons. If style is set to STYLE_FILL then triangles
+         * are drawn to form the fill polygon.
+         * @param style style for the shape fill or stroke
+         * @param coordinates array with input coordinates for the polygon
+         * @param numberOfSegments the number of segments for the polygon for example triangle: 3, rectangle:4, pentagon:5,...
+         * @param innerDepth inner depth in range between [0,1] determine the star like shapes
+         */
+        fun getStarCoordinatesByStyle(style: Int, coordinates: FloatArray, numberOfSegments: Int, innerDepth: Float): FloatArray {
+
+            // how many coordinates are needed when drawing the
+            val coordinatesPerSegment = if (style == STYLE_FILL) {
+                // triangles are made of 3 points, each with 2 coordinates x,y that gives 6 coordinates in total
+                6
+            } else {
+                // lines are made of 2 point, each with 2 coordinates x,y, that gives 4 coordinates in total
+                4
+            }
+
+            val newCoordinates = FloatArray((coordinates.size / 4) * numberOfSegments * coordinatesPerSegment * 2)
+            val result = PointF()
+            val rotationalAngle = 360f / numberOfSegments
+            val numberOfPolygons = coordinates.size / 4
+
+            // get the coordinate of the triangles that make up each polygon
+            for (i in 0 until numberOfPolygons) {
+
+                // center point for the polygon
+                val cx = coordinates[i * 4]
+                val cy = coordinates[i * 4 + 1]
+
+                // radius for the polygon
+                val r = coordinates[i * 4 + 2]
+
+                // start angle of the polygon
+                val startAngle = coordinates[i * 4 + 3]
+
+                // the coordinate at the edge-point laying on the the circle with the radius of the polygon
+                val x = cx + r
+                val y = cy
+
+                // coordinates of the previous vertex
+                var previousX = 0f
+                var previousY = 0f
+
+                // coordinates of the first vertex
+                var firstX = 0f
+                var firstY = 0f
+
+                for (j in 0 until numberOfSegments) {
+
+                    // get the new angle of rotation that is increased with the rotationalAngle each time
+                    val angle = rotationalAngle * j + startAngle
+                    OpenGLStatic.rotate(cx, cy, x, y, angle, false, result)
+
+                    // start filling the array with coordinates once we have the first coordinate
+                    // since for creating the triangle we need previous and current vertex point
+                    if (j > 0) {
+                        val m = i * numberOfSegments * coordinatesPerSegment + j * coordinatesPerSegment * 2
+                        addStarCoordinates(m, newCoordinates, innerDepth, previousX, previousY, result.x, result.y, cx, cy, coordinatesPerSegment)
+                    } else {
+                        firstX = result.x
+                        firstY = result.y
+                    }
+
+                    // set previous vertex coordinate that will be used for the next triangle
+                    previousX = result.x
+                    previousY = result.y
+                }
+
+                // connect first and last triangle vertices
+                val m = i * numberOfSegments * coordinatesPerSegment * 2
+                addStarCoordinates(m, newCoordinates, innerDepth, previousX, previousY, firstX, firstY, cx, cy, coordinatesPerSegment)
+            }
+            return newCoordinates
+        }
+
+        /**
+         * Add the line or triangle coordinates at particular index for the regular polygon, when the
+         * innerDepth is bigger that 0, and a star like shape is created.
+         */
+        fun addStarCoordinates(
+            i: Int, newCoordinates: FloatArray, innerDepth: Float, previousX: Float, previousY: Float,
+            resultX: Float, resultY: Float, cX: Float, cY: Float, coordinatesPerSegment: Int
+        ) {
+
+            // middle point between current and previous points
+            val middleX = previousX + (resultX - previousX) * 0.50f
+            val middleY = previousY + (resultY - previousY) * 0.50f
+
+            // get the inner star point using the inner-depth ratio
+            val innerX = ((1 - innerDepth) * middleX + innerDepth * cX)
+            val innerY = ((1 - innerDepth) * middleY + innerDepth * cY)
+
+            // for triangles the center is also used as vertex
+            if (coordinatesPerSegment == 6) {
+
+                // triangle previous->inner->center
+                newCoordinates[i] = previousX
+                newCoordinates[i + 1] = previousY
+                newCoordinates[i + 2] = innerX
+                newCoordinates[i + 3] = innerY
+                newCoordinates[i + 4] = cX
+                newCoordinates[i + 5] = cY
+
+                // triangle inner->current->center
+                newCoordinates[i + 6] = innerX
+                newCoordinates[i + 7] = innerY
+                newCoordinates[i + 8] = resultX
+                newCoordinates[i + 9] = resultY
+                newCoordinates[i + 10] = cX
+                newCoordinates[i + 11] = cY
+            } else {
+
+                // line from previous point to inner point
+                newCoordinates[i] = previousX
+                newCoordinates[i + 1] = previousY
+                newCoordinates[i + 2] = innerX
+                newCoordinates[i + 3] = innerY
+
+                // line from inner point to current point
+                newCoordinates[i + 4] = innerX
+                newCoordinates[i + 5] = innerY
+                newCoordinates[i + 6] = resultX
+                newCoordinates[i + 7] = resultY
+            }
+        }
+
+        /**
          * Method that get the number of vertices per regular polygon depending on the style. If style STYLE_FILL is used
          * there (numberOfVertices * 3) vertices from the triangles that make up the polygon. If the style is STYLE_STROKE,
          * then there are (numberOfVertices * 2) vertices from the lines that make up the polygon.
          * @param style style for the shape fill or stroke
          * @param numberOfVertices the number of vertices for the polygon for example triangle: 3, rectangle:4, pentagon:5,...
+         * @param innerDepth inner depth in range between [0,1] determine the star like shapes
          */
-        fun getRegularPolygonsNumberOfVerticesFromStyle(style: Int, numberOfVertices: Int): Int {
+        fun getRegularPolygonsNumberOfVerticesFromStyle(style: Int, numberOfVertices: Int, innerDepth: Float): Int {
+
+            // if the number of elements should double, since star like shapes will be created
+            val doubleElements = if (innerDepth > 0f) 2 else 1
+
             return when (style) {
                 STYLE_FILL -> {
                     // the number of triangles that make up the fill polygon matches the 'numberOfVertices', each one is triangle with 3 vertices
-                    numberOfVertices * 3
+                    numberOfVertices * 3 * doubleElements
                 }
                 else -> {
                     // the number of lines that make up the fill polygon matches the numberOfVertices, each line has 2 vertices
-                    numberOfVertices * 2
+                    numberOfVertices * 2 * doubleElements
                 }
             }
         }
@@ -982,6 +1126,60 @@ open class Shapes(
 
             return newCoordinates.toFloatArray()
         }
+
+        /**
+         * Get the OpenGL type that will be draw using the coordinate from the style.
+         * @param style style for the shape fill or stroke
+         */
+        fun getIrregularPolygonTypeByStyle(style: Int): Int {
+
+            return when (style) {
+                STYLE_FILL -> {
+                    // for shapes made out of triangles
+                    GLES20.GL_TRIANGLES
+                }
+                else -> {
+                    // for shapes made out of lines, equivalent to 'lineTo'
+                    GLES20.GL_LINE_STRIP
+                }
+            }
+        }
+
+        /**
+         * Method that get the number of vertices per irregular polygon deepening on the style
+         * @param style style for the shape fill or stroke
+         */
+        fun getIrregularPolygonNumberOfVerticesFromStyle(style: Int): Int {
+            return when (style) {
+                STYLE_FILL -> 3 // each triangle has 3 vertices
+                else -> 2       // each line has 3 vertices
+            }
+        }
+
+        /**
+         * Method that generates the coordinates of irregular polygon defined by FloatArray with
+         * coordinates. If style is set to STYLE_FILL triangles are used to fill the shapes and if
+         * style is STYLE_STROKE the same array with points coordinates is returned since the lines
+         * are drawn with GL_LINE_STRIP mode which is equivalent to 'lineTo'
+         * @param style style for the shape fill or stroke
+         * @param coordinates array with coordinates for the point that define the irregular polygon
+         */
+        fun getIrregularPolygonCoordinates(style: Int, coordinates: FloatArray): FloatArray {
+
+            return if (style == STYLE_STROKE) {
+                coordinates
+            } else {
+                val triangleIndices = PolygonTriangulation.triangulate(coordinates)
+                val newCoordinates = FloatArray(triangleIndices.size * 2)
+                for (i in triangleIndices.indices) {
+                    val j = triangleIndices[i]
+                    newCoordinates[i * 2] = coordinates[j * 2]
+                    newCoordinates[i * 2 + 1] = coordinates[j * 2 + 1]
+                }
+                newCoordinates
+            }
+        }
+
     }
 }
 
